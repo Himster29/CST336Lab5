@@ -21,13 +21,29 @@ app.get('/', async (req, res) => {
 
 app.get('/nasaPOD', async (req, res) => {
     const api = 'https://api.nasa.gov/planetary/apod?api_key=9mUzIkhlZCZaOoMfspg7jMmwZCZ4LiRHtkgkambD&date=2025-10-14';
-    const r = await fetch(api);
-    const data = await r.json();
-    const isImage = data.media_type === 'image';
-    const mediaUrl = data.hdurl || data.url || null;
-    res.render('nasaPOD.ejs', { data, isImage, mediaUrl });
 
+    let data = null, isImage = false, mediaUrl = null;
+
+    try {
+
+        const controller = new AbortController();
+        const t = setTimeout(() => controller.abort(), 6000);
+
+        const r = await fetch(api, { signal: controller.signal });
+        clearTimeout(t);
+
+        if (!r.ok) throw new Error(`APOD ${r.status}`);
+        data = await r.json();
+
+        isImage = data.media_type === 'image';
+        mediaUrl = data.hdurl || data.url || null;
+    } catch (err) {
+
+    }
+
+    res.render('nasaPOD.ejs', { data, isImage, mediaUrl, apiDown: !data });
 });
+
 
 app.listen(3000, () => {
     console.log('server started');
